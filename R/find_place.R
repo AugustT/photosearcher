@@ -1,23 +1,30 @@
-#' Find correct location informatio for a given place
+#' Find correct location information for a given place
 #'
-#' @param place Text string describing the place for the query
+#' Takes user defined location and returns location data for the search. Uses
+#' the flickr.places.find API method from the Flickr API. See
+#' \url{https://www.flickr.com/services/api/flickr.places.find.html} for more
+#' information on the API method.
 #'
-#' @return A dataframe of places including woe_id to be used in location_tags
+#' @param place character. The place for the query
+#'
+#' @return data.frame. Information on locations that share the name with the
+#'   search location. Nine variables are returned: place_id, woeid, latitude,
+#'   longitude, place_url, place_type, place_type_id, timezone, woe_name.
+
 #' @export
 #' @name findPlaces
 #'
 #' @examples
 #' \dontrun{
 #' find_place(place = "New York")
-#' 
+#'
 #' find_place(place = "England")
 #' }
-find_place <- function(place = NULL) {
-  if (is.null(place) == TRUE) {
-    stop("provide a place")
-  }
+find_place <- function(place) {
 
-  api_key <- as.character(get_key())
+  # this checks for the presence of a key, if no key it prompts the user to create one,
+  # it then checks the validity of the key
+  api_key <- create_and_check_key()
 
   place <- gsub(" ", "+", trimws(place))
 

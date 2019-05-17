@@ -1,54 +1,84 @@
-#' photo_search
+#' Search for photo metadata
 #'
-#' @param min_taken String, minimum date of photograph for search provide as "YYYY-MM-DD".
-#' @param max_taken String, maximum date of photograph for search provide as "YYYY-MM-DD".
-#' @param text String, text to be searched.
-#' @param bbox String, optional bounding box of search area provide as:
-#'             "minimum_longitude,minimum_latitude,maximum_longitude,maximum_latitude".
-#' @param has_geo Logical, arguement for whether returned photos need to be georeference.
+#' Returns image metadata for photos matching the search terms.
 #'
-#' @return Output will be a dataframe consisting of 54 variables including; latitude and longitude of photograph, photograph tags and image urls
+#' Uses the flickr.photos.search API method from the Flickr API. This search method
+#' requires a limiting factor to prevent parameterless searches - to enure this is met the
+#' function requires both a minimum and a maximum date that searched photographs were
+#' taken on. See \url{https://www.flickr.com/services/api/flickr.photos.search.html} for
+#' more information on the API method.
+#'
+#' @param mindate character. Minimum date of photograph for search provided as
+#'   "YYYY-MM-DD".
+#' @param maxdate character. Maximum date of photograph for search provided as
+#'   "YYYY-MM-DD".
+#' @param text character. Optional text to be searched.
+#' @param tags character. Optional tags to filter by.
+#' @param bbox character. Optional bounding box of search area provide as:
+#'   \code{minimum_longitude, minimum_latitude, maximum_longitude, maximum_latitude}.
+#' @param has_geo logical. Optional arguement for whether returned photos need
+#'   to be georeference.
+#'
+#' @return data.frame. Output consists of 57 variables including;
+#'   latitude and longitude of photograph, date and time it was taken,
+#'   associated tags and image urls.
+#'
+#'   Full list of variables returned: id, owner, secret, server, farm, title,
+#'   ispublic, isfriend, isfamily, license, datetaken, datetakengranularity,
+#'   datetakenunknown, count_views, count_comments, count_faves, tags, latitude,
+#'   longitude, accuracy, context, place_id, woeid, geo_is_family,
+#'   geo_is_friend, geo_is_contact, geo_is_public, url_sq, height_sq, width_sq,
+#'   url_t, height_t, width_t, url_s, height_s,	width_s	url_q, height_q,
+#'   width_q, url_m, height_m, width_m, url_n, height_n, width_n, url_z,
+#'   height_z, width_z, url_c, height_c, width_c, url_l, height_l, width_l,
+#'   url_o, height_o, width_o.
+#'
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' photo_search(min_taken = "2019-01-01",
-#'              max_taken = "2019-01-02",
-#'              text = "tree",
-#'              bbox = "-13.623047,47.279229,3.251953,60.630102",
-#'              has_geo = TRUE)
+#' photo_search(
+#'   mindate = "2019-01-01",
+#'   maxdate = "2019-01-02",
+#'   text = "tree",
+#'   bbox = "-13.623047,47.279229,3.251953,60.630102",
+#'   has_geo = TRUE
+#' )
 #'
-#' photo_search(min_taken = "2001-01",
-#'              max_taken = "2010-01-01",
-#'              text = "mountain",
-#'              bbox = NULL,
-#'              has_geo = NULL)
+#'
+#' photo_search(
+#'   mindate = "2019-01-01",
+#'   maxdate = "2019-01-02",
+#'   text = "tree",
+#'   bbox = "-13.623047,47.279229,3.251953,60.630102",
+#'   has_geo = TRUE
+#' )
 #' }
+#'
 photo_search <-
-  function(min_taken = "2019-01-01",
-             max_taken = "2019-01-01",
+  function(mindate = "2019-01-01",
+             maxdate = "2019-01-01",
              text = NULL,
+             tags = NULL,
              bbox = NULL,
              has_geo = TRUE) {
     text <- gsub(" ", "+", trimws(text))
-    mindate <- min_taken
-    maxdate <- max_taken
+    tags <- gsub(" ", "+", trimws(tags))
+    tags <- paste(tags, collapse = ",")
     pics <- NULL
-    spatial_df <- NULL
 
-    if (is.null(mindate) == TRUE) {
-      stop("provide a min date")
-    }
-
-    if (is.null(maxdate) == TRUE) {
-      stop("provide a max date")
-    }
 
     # create dfs so large searches can be subset dynamically
     date_df <- data.frame(mindate = mindate, maxdate = maxdate)
 
-    # get or save the api_key
-    api_key <- as.character(get_key())
+    # this checks for the presence of a key, if no key it prompts the user to create one,
+    # it then checks the validity of the key
+    api_key <- create_and_check_key()
+
+    #check for vailid bbox
+    if (!is.null(bbox)){
+      check_bbox(bb = bbox, key = api_key)
+    }
 
     # start while loop - until all dates are looped through
     while (nrow(date_df) > 0) {
@@ -60,17 +90,15 @@ photo_search <-
       # rest page to 1
       i <- 1
 
-      # url but new util doesnt work here
-      base_url <- paste("https://api.flickr.com/services/rest/?method=flickr.photos.search&api_key=", api_key,
-        "&text=", text,
-        "&min_taken_date=", as.character(mindate),
-        "&max_taken_date=", as.character(maxdate),
-        ifelse(!(is.null(bbox)), paste0("&bbox=", bbox), ""),
-        ifelse(has_geo, paste0("&has_geo=", has_geo), ""),
-        "&extras=", "date_taken,geo,tags,license,url_sq,url_t,url_s,url_q,url_m,url_n,url_z,url_c,url_l,url_o,count_views,count_comments,count_faves",
-        "&page=", i,
-        "&format=", "rest",
-        sep = ""
+      base_url <- get_url(
+        mindate = mindate,
+        maxdate = maxdate,
+        api_key = api_key,
+        page = i,
+        text = text,
+        tags = tags,
+        bbox = bbox,
+        has_geo = has_geo
       )
 
       photo_xml <- search_url(base_url = base_url)
@@ -82,7 +110,7 @@ photo_search <-
         total <- pages_data["total", ]
 
         # if > 4000 and not single days, split
-        if (total > 4000 && (as.Date(mindate) != (as.Date(maxdate) - 1))) {
+        if ((total > 4000 && (as.Date(mindate)) != (as.Date(maxdate) - 1)) | (total > 4000 && (as.Date(mindate)) != (as.Date(maxdate)))) {
           x <- ceiling(total / 4000)
           y <- length(seq(as.Date(mindate), as.Date(maxdate), by = "+1 day"))
 
@@ -101,8 +129,9 @@ photo_search <-
         }
 
         # if > 4000 and single days, pass days to be split by area
-        else if (total > 4000 && (as.Date(mindate) == (as.Date(maxdate) - 1))) {
-          spatial_df <- rbind(spatial_df, data.frame(mindate = mindate, maxdate = maxdate))
+        else if ((total > 4000 && (as.Date(mindate)) == (as.Date(maxdate) - 1)) | (total > 4000 && (as.Date(mindate)) == (as.Date(maxdate)))) {
+
+          warning("Dates ", mindate, " to ", maxdate, "skipped: too many API results")
 
           date_df <- date_df[-1, ]
         }
@@ -115,18 +144,15 @@ photo_search <-
 
           # loop thru pages of photos and save the list in a DF
           for (i in c(1:total_pages)) {
-
-            # url but new util doesnt work here
-            base_url <- paste("https://api.flickr.com/services/rest/?method=flickr.photos.search&api_key=", api_key,
-              "&text=", text,
-              "&min_taken_date=", as.character(mindate),
-              "&max_taken_date=", as.character(maxdate),
-              ifelse(!(is.null(bbox)), paste0("&bbox=", bbox), ""),
-              ifelse(has_geo, paste0("&has_geo=", has_geo), ""),
-              "&extras=", "date_taken,geo,tags,license,url_sq,url_t,url_s,url_q,url_m,url_n,url_z,url_c,url_l,url_o,count_views,count_comments,count_faves",
-              "&page=", i,
-              "&format=", "rest",
-              sep = ""
+            base_url <- get_url(
+              mindate = mindate,
+              maxdate = maxdate,
+              api_key = api_key,
+              page = i,
+              text = text,
+              tags = tags,
+              bbox = bbox,
+              has_geo = has_geo
             )
 
             # this new one works here
@@ -153,140 +179,6 @@ photo_search <-
       }
     }
 
-    # split single days by area if bbox is available
-    if (!is.null(bbox) && !is.null(spatial_df)) {
-
-      # add bbox to df
-      strbbox <- unlist(strsplit(bbox, ","), use.names = FALSE)
-      spatial_df$xmin <- strbbox[1]
-      spatial_df$ymin <- strbbox[2]
-      spatial_df$xmax <- strbbox[3]
-      spatial_df$ymax <- strbbox[4]
-
-      while (nrow(spatial_df) > 0) {
-        mindate <- spatial_df[1, "mindate"]
-        maxdate <- spatial_df[1, "maxdate"]
-        xmin <- spatial_df[1, "xmin"]
-        ymin <- spatial_df[1, "ymin"]
-        xmax <- spatial_df[1, "xmax"]
-        ymax <- spatial_df[1, "ymax"]
-
-        # bbox for url search
-        bbox <- paste(xmin, ",", ymin, ",", xmax, ",", ymax, sep = "")
-
-        # reset page numbers
-        i <- 1
-
-        # url
-        base_url <- paste("https://api.flickr.com/services/rest/?method=flickr.photos.search&api_key=", api_key,
-          "&text=", text,
-          "&min_taken_date=", as.character(mindate),
-          "&max_taken_date=", as.character(maxdate),
-          ifelse(!(is.null(bbox)), paste0("&bbox=", bbox), ""),
-          ifelse(has_geo, paste0("&has_geo=", has_geo), ""),
-          "&extras=", "date_taken,geo,tags,license,url_sq,url_t,url_s,url_q,url_m,url_n,url_z,url_c,url_l,url_o,count_views,count_comments,count_faves",
-          "&page=", i,
-          "&format=", "rest",
-          sep = ""
-        )
-
-        # this new one works here
-        photo_xml <- search_url(base_url = base_url)
-
-        if (!is.null(photo_xml)) {
-          pages_data <- data.frame(xml2::xml_attrs(xml2::xml_children(photo_xml)))
-          pages_data[] <- lapply(pages_data, FUN = function(x) as.integer(as.character(x)))
-          total_pages <- pages_data["pages", ]
-          total <- pages_data["total", ]
-
-          # if less than 4000 and greater than 0
-          if (total <= 4000 && total > 0) {
-
-            # get data second error catch here
-            pics_tmp <- NULL
-
-            # loop thru pages of photos and save the list in a DF
-            for (i in c(1:total_pages)) {
-
-              # url
-              base_url <- paste("https://api.flickr.com/services/rest/?method=flickr.photos.search&api_key=", api_key,
-                "&text=", text,
-                "&min_taken_date=", as.character(mindate),
-                "&max_taken_date=", as.character(maxdate),
-                ifelse(!(is.null(bbox)), paste0("&bbox=", bbox), ""),
-                ifelse(has_geo, paste0("&has_geo=", has_geo), ""),
-                "&extras=", "date_taken,geo,tags,license,url_sq,url_t,url_s,url_q,url_m,url_n,url_z,url_c,url_l,url_o,count_views,count_comments,count_faves",
-                "&page=", i,
-                "&format=", "rest",
-                sep = ""
-              )
-
-              # this new one works here
-              photo_xml <- search_url(base_url = base_url)
-
-              if (!is.null(photo_xml)) {
-                photo_atts <- xml2::xml_find_all(photo_xml, "//photo", ns = xml2::xml_ns(photo_xml))
-                tmp_df <- dplyr::bind_rows(lapply(xml2::xml_attrs(photo_atts), function(x) data.frame(as.list(x), stringsAsFactors = FALSE)))
-
-                pics_tmp <- dplyr::bind_rows(pics_tmp, tmp_df)
-                tmp_df <- NULL
-              }
-            }
-
-            pics <- dplyr::bind_rows(pics, pics_tmp)
-
-            date_df <- date_df[-1, ]
-          }
-
-          # if more than 4000 split
-          else if (total > 4000 && (xmin != xmax | ymin != ymax)) {
-
-            # find the right number of squares needed
-            num <- ceiling(total / 4000)
-            num_sqrt <- sqrt(num)
-            num_next <- ceiling(num_sqrt)
-            sqr_next <- num_next * num_next
-
-            # number to sequence x and y coords by
-            z <- sqrt(sqr_next) + 1
-
-            xseq <- seq(xmin, xmax, length.out = z)
-            yseq <- seq(ymin, ymax, length.out = z)
-
-            xy_df <- NULL
-
-            for (y in 1:(length(yseq) - 1)) {
-              x_df <- data.frame(xmin = xseq[1:(length(xseq) - 1)], xmax = xseq[2:(length(xseq))])
-              y_df <- data.frame(ymin = yseq[y], ymax = yseq[y + 1])
-
-              z_df <- data.frame(mindate = mindate, maxdate = maxdate, xmin = x_df$xmin, ymin = y_df$ymin, xmax = x_df$xmax, ymax = y_df$ymax)
-              xy_df <- rbind(xy_df, z_df)
-
-              rm(list = "z_df")
-            }
-
-            spatial_df <- rbind(spatial_df[-1, ], xy_df)
-          }
-
-          # if bbox coords become points
-          else if (total > 4000 && (xmin == xmax && ymin == ymax)) {
-
-            # warn that single point > 4000 photos a day
-            warning("Location ", bbox, " between dates", mindate, " and ", maxdate, " skipped as > 4000 returns")
-
-            spatial_df <- rbind(spatial_df[-1, ])
-          }
-
-          # else if less than 1 skip date
-          else {
-            print("else")
-
-            spatial_df <- rbind(spatial_df[-1, ])
-          }
-        }
-      }
-    }
-
-    # end
+    #end
     return(pics)
   }

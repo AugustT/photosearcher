@@ -2,18 +2,26 @@
 % Please edit documentation in R/user_info.R
 \name{user_info}
 \alias{user_info}
-\title{Title}
+\title{Get user information}
 \usage{
-user_info(user_id = NULL)
+user_info(user_id)
 }
 \arguments{
-\item{user_id}{String, the id of the user you wihs to obtain information for.}
+\item{user_id}{character. The id of the user you wish to obtain information for.}
 }
 \value{
-Dataframe of users publically available infromation including; hometown and occupation
+data.frame. Dataframe of 18 variables from the searched users publically
+available information: id, nsid,	join_date, occupation, hometown, showcase_set,
+showcase_set_title, first_name, last_name, profile_description,
+website	city, country, facebook, twitter, tumblr, Instagram, pinterest
 }
 \description{
-Title
+Takes Flickr user ID and returns the profile data.
+}
+\details{
+Uses the flickr.profile.getProfile API method from the Flickr API. See
+\url{https://www.flickr.com/services/api/flickr.profile.getProfile.html} for
+more information on the API method.
 }
 \examples{
 \dontrun{

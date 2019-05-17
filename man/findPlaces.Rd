@@ -3,18 +3,23 @@
 \name{findPlaces}
 \alias{findPlaces}
 \alias{find_place}
-\title{Find correct location informatio for a given place}
+\title{Find correct location information for a given place}
 \usage{
-find_place(place = NULL)
+find_place(place)
 }
 \arguments{
-\item{place}{Text string describing the place for the query}
+\item{place}{character. The place for the query}
 }
 \value{
-A dataframe of places including woe_id to be used in location_tags
+data.frame. Information on locations that share the name with the
+search location. Nine variables are returned: place_id, woeid, latitude,
+longitude, place_url, place_type, place_type_id, timezone, woe_name.
 }
 \description{
-Find correct location informatio for a given place
+Takes user defined location and returns location data for the search. Uses
+the flickr.places.find API method from the Flickr API. See
+\url{https://www.flickr.com/services/api/flickr.places.find.html} for more
+information on the API method.
 }
 \examples{
 \dontrun{

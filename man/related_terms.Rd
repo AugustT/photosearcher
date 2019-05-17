@@ -2,18 +2,23 @@
 % Please edit documentation in R/related_terms.R
 \name{related_terms}
 \alias{related_terms}
-\title{Title}
+\title{Get related terms}
 \usage{
-related_terms(term = NULL)
+related_terms(term)
 }
 \arguments{
-\item{term}{String, term to search.}
+\item{term}{character. Term to search.}
 }
 \value{
-List of terms most associated with input term.
+character. Tags most associated with input term.
 }
 \description{
-Title
+Takes a term and returns the top tags related to that term.
+}
+\details{
+Uses the flickr.tags.getRelated API method from the Flickr API. See
+\url{https://www.flickr.com/services/api/flickr.tags.getRelated.html} for
+more information on the API method.
 }
 \examples{
 \dontrun{

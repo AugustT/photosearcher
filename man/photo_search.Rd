@@ -2,32 +2,71 @@
 % Please edit documentation in R/photo_search.R
 \name{photo_search}
 \alias{photo_search}
-\title{photo_search}
+\title{Search for photo metadata}
 \usage{
-photo_search(min_taken = "2019-01-01", max_taken = "2019-01-01",
-  text = NULL, bbox = NULL, has_geo = TRUE)
+photo_search(mindate = "2019-01-01", maxdate = "2019-01-01",
+  text = NULL, tags = NULL, bbox = NULL, has_geo = TRUE)
 }
 \arguments{
-\item{min_taken}{String, minimum date of photograph for search provide as "YYYY-MM-DD".}
+\item{mindate}{character. Minimum date of photograph for search provided as
+"YYYY-MM-DD".}
 
-\item{max_taken}{String, maximum date of photograph for search provide as "YYYY-MM-DD".}
+\item{maxdate}{character. Maximum date of photograph for search provided as
+"YYYY-MM-DD".}
 
-\item{text}{String, text to be searched.}
+\item{text}{character. Optional text to be searched.}
 
-\item{bbox}{String, optional bounding box of search area provide as "minimum_longitude,minimum_latitude,maximum_longitude,maximum_latitude".}
+\item{tags}{character. Optional tags to filter by.}
 
-\item{has_geo}{Logical, arguement for whether returned photos need to be georeference.}
+\item{bbox}{character. Optional bounding box of search area provide as:
+\code{minimum_longitude, minimum_latitude, maximum_longitude, maximum_latitude}.}
+
+\item{has_geo}{logical. Optional arguement for whether returned photos need
+to be georeference.}
 }
 \value{
-Output will be a dataframe consisting of 54 variables including; latitude and longitude of photograph, photograph tags and image urls
+data.frame. Output consists of 57 variables including;
+latitude and longitude of photograph, date and time it was taken,
+associated tags and image urls.
+
+Full list of variables returned: id, owner, secret, server, farm, title,
+ispublic, isfriend, isfamily, license, datetaken, datetakengranularity,
+datetakenunknown, count_views, count_comments, count_faves, tags, latitude,
+longitude, accuracy, context, place_id, woeid, geo_is_family,
+geo_is_friend, geo_is_contact, geo_is_public, url_sq, height_sq, width_sq,
+url_t, height_t, width_t, url_s, height_s,	width_s	url_q, height_q,
+width_q, url_m, height_m, width_m, url_n, height_n, width_n, url_z,
+height_z, width_z, url_c, height_c, width_c, url_l, height_l, width_l,
+url_o, height_o, width_o.
 }
 \description{
-photo_search
+Returns image metadata for photos matching the search terms.
+}
+\details{
+Uses the flickr.photos.search API method from the Flickr API. This search method
+requires a limiting factor to prevent parameterless searches - to enure this is met the
+function requires both a minimum and a maximum date that searched photographs were
+taken on. See \url{https://www.flickr.com/services/api/flickr.photos.search.html} for
+more information on the API method.
 }
 \examples{
 \dontrun{
-photo_search(min_taken = "2019-01-01", max_taken = "2019-01-02", text = "tree", bbox = "-13.623047,47.279229,3.251953,60.630102", has_geo = TRUE)
+photo_search(
+  mindate = "2019-01-01",
+  maxdate = "2019-01-02",
+  text = "tree",
+  bbox = "-13.623047,47.279229,3.251953,60.630102",
+  has_geo = TRUE
+)
 
-photo_search(min_taken = "2001-01", max_taken = "2010-01-01", text = "mountain", bbox = NULL, has_geo = NULL)
+
+photo_search(
+  mindate = "2019-01-01",
+  maxdate = "2019-01-02",
+  text = "tree",
+  bbox = "-13.623047,47.279229,3.251953,60.630102",
+  has_geo = TRUE
+)
 }
+
 }
